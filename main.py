@@ -54,7 +54,7 @@ def main():
           d = Counter(discovered_year)
           countindex.append([0, x])
           yearindex.append(d[x])
-     print(countindex)
+     print(yearindex)
      countindex_train = countindex[:-20]
      countindex_test = countindex[-20:]
      yearindex_train = yearindex[:-20]

@@ -1,3 +1,4 @@
+#TF + Keras
 import csv
 import statistics
 import numpy as np
@@ -5,42 +6,79 @@ from array import array
 import matplotlib.pyplot as plt
 import sys
 import math
+from sklearn import preprocessing
+from sklearn import datasets, linear_model
+from sklearn.neural_network  import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+from sklearn import datasets
+"""
+Note index 71 is for flame length
+Index 73 is fire size?
+"""
 def main():
+    np.random.seed(0)
     maximum = sys.maxsize
     masterdata = []
     count = 0
     with open('ODF_Fire.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter = ',')
         for row in csv_reader:
-            count +=1
-            if row[23] != '' and row[24] != '':
+            
+            if count != 0:
                 newaddition = []
                 for column in row:
                     newaddition.append(column)
                 masterdata.append(newaddition)
-    """
-    master_long = getLongitude(masterdata)
-    master_lat = getLatitude(masterdata)
+            count +=1
+    list1, list2,longitude,latitude = filterInt(masterdata, 63,73,23,24)
+    newarray = []
+    counter = 0
+    for row in list1:
+        newarray.append([int(row),longitude[counter], latitude[counter]])
+        counter+=1
+    linearreg(newarray,list2)
+    #perceptron(newarray, list2)
+#Linear reg seems to be working better, further testing needed
+def linearreg(list1, list2):
+    regr = linear_model.LinearRegression()
+    regr.fit(list1, list2)
+    print(regr.predict([[6,-123,45]]))
+def scale_data(inputdata):
+    newarray = []
+    for row in inputdata:
+        newarray.append(row*100)
+    return newarray
+#Somethign is working here, have to keep messing around remember to add other types of input data, write new function to make sure that all the data stays aligned
+#MLP might not be the most optimal thing, sklearn may not deliver on the functionalities I need
+def perceptron(newarray, list2):
+    iris = datasets.load_iris()
+    X= newarray
+    testsize = 0.3
+    random_state = 0    
+    y = list2
+    y = np.asarray(y)
+    print(y[0:20])
+    np.expand_dims(y, -1)
+    #X = np.asarray(X)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)
+    y_train = scaler.fit_transform(y_train.reshape(-1,1)).flatten()
+    print(y_train[0:20])
+    X_train = X_train[0:1000]
+    y_train = y_train[0:1000]
+    
+    y_test = scaler.transform(y_test.reshape(-1, 1)).flatten()
+    ppn = MLPClassifier(hidden_layer_sizes = (3000), activation = "logistic",max_iter = 200,learning_rate_init = 0.001, solver = "lbfgs")
+    ppn.fit(X_train, y_train.astype(int))
 
-    acres_100_long = filterSize(masterdata, 100,200, 23)
-    acres_100_lat = filterSize(masterdata, 100 ,200, 24)
     
-    plt.scatter(master_long, master_lat, color = "black")
-    plt.scatter(acres_100_long, acres_100_lat, color = "red")
-    
-    graphRange(masterdata, 0, maximum, "green")
-    #graphRange(masterdata, 300, 1000, "red")
-    print(count)
-    """
-    list1, list2 = filterData(masterdata, 4,72)
-    testing = linearReg(list1, list2)
-    for x in range(1,2000):
-        testing.train(x)
-    print (testing.adjuster)
-    plt.scatter(list1, list2, color = "black")
-    for x in range(1960, 2022):
-        plt.scatter(x, x*testing.adjuster)
-    plt.show()
+    y_pred = ppn.predict(X_test)
+    print(y_pred)
     
 def getLongitude(masterdata):
     newarray = []
@@ -64,36 +102,25 @@ def printYears(masterdata):
     for index in masterdata:
         print(index[4])
 #Returns good data
-def filterData(masterdata, index1, index2):
+def filterInt(masterdata, index1, index2,index3,index4):
     newarray1 = []
     newarray2 = []
+    newarray3 = []
+    newarray4 = []
     count = 0
     for row in masterdata:
-        if count != 0 and row[index1] != '' and row[index2] != '':
+        if count != 0 and row[index1] != '' and row[index2] != '' and row[index3] != '' and row[index4] != '' and float(row[index2]) >5 :
             newarray1.append(float(row[index1]))
             newarray2.append(float(row[index2]))
+            newarray3.append(float(row[index3]))
+            newarray4.append(float(row[index4]))
         count +=1
-    return newarray1 , newarray2
+    return newarray1 , newarray2, newarray3, newarray4
 def graphRange(masterdata, minsize, maxsize, inputcolor):
     acres_long = filterSize(masterdata, minsize, maxsize, 23)
     acres_lat = filterSize(masterdata, minsize, maxsize, 24)
-    plt.scatter(acres_long, acres_lat, color = inputcolor)
-def testMLP(masterdata, inputcolor):
-    longitude = getLongitude(masterdata)
-    latitude = getLatitude(masterdata)
-    test1 = []
-    test2 = []
-    count = 0
-    for data in longitude:
-        temp = []
-        temp.append(data)
-        temp.append(latitude[count])
-        temp +=1
-        test1.append(temp)
-        test2.append(count)
-    
-#Function to do STD and calculate normal distribution for data
-#Probably more proof of concept than anything else
+    plt.scatter(acres_long, acres_lat, color = inputcolor)    
+#Anything below this point is preserved for a once in a blue scenario, will probably not be used
 def normalDist(masterdata, count):
     longitude = getLongitude(masterdata)
     latitude = getLatitude(masterdata)
@@ -101,7 +128,6 @@ def normalDist(masterdata, count):
     std_lat = statistics.stdev(latitude)
     new_long = []
     
-    #for x <
 class linearReg:
     def __init__(self, x, y):
         self.input = x
@@ -113,7 +139,7 @@ class linearReg:
             self.adjuster -= 0.01
         else:
             self.adjuster += 0.01
-    
+#Does not work, will not be used
 class NeuralNetwork:
     def __init__(self, x, y):
         self.input      = x
