@@ -16,7 +16,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 from sklearn import datasets
 from tensorflow.keras import Sequential
 from keras.layers.core import Dense
-from datetime import datetime
+import datetime as DT
 import matplotlib.dates as mdates
 """
 Note index 71 is for flame length
@@ -36,30 +36,29 @@ def main():
                     newaddition.append(column)
                 masterdata.append(newaddition)
             count +=1
-    #filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2)
+    filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2)
     #All ignition time entries after 2008 go boom using the below line of code
-    flamelength, firesize,longitude,latitude,ignition,serial = filterInt(masterdata, 63,73,23,24,0,0)
+    #flamelength, firesize,longitude,latitude,ignition,serial = filterInt(masterdata, 63,73,23,24,54,2)
     ignition = processTimes(ignition)
-    print()
+    print(ignition)
     newarray = []
     counter = 0
-    #print(webScrape('2012/4/6','2020/5/6'))
-    
+    print(webScrape('2012/4/6','2020/5/6'))
+    """
     for row in flamelength:
-        newarray.append([int(row)**5,int(int(row)**6)])
+        newarray.append([int(row)])
         counter+=1
     max = 0
     count = 0
-    print(len(newarray))
-    print(len(firesize))
-    for x in range(1,16):
-        newint = linearreg(newarray,firesize,x*1000)
-        
-        if newint > max:
-            max = newint
     
+    for x in range(1,16):
+        newint = linearreg(newarray,list2,x*1000)
+        
+    if newint > max:
+            max = newint
+    """
     print(dataValidate(masterdata,serial,ignition,54))
-    newint = linearreg(newarray, firesize, 16000)
+    #newint = linearreg(newarray, firesize, 16000)
     #perceptron(newarray, list2)
     #keras(list1,list2)
 def dataValidate(masterdata, serial, inputlist, index):
@@ -88,9 +87,8 @@ def linearreg(list1, list2,numeral):
     results = regr.predict(X_test)
     listresult = results.tolist()
     #print(listresult)
-    
-    #plt.scatter(X_test, y_test, color =  "blue")
-    #plt.scatter(X_test, results, color = "red")
+    plt.scatter(X_test, y_test, color =  "blue")
+    plt.scatter(X_test, results, color = "red")
     plt.show()
     print("Coeffiencet: %.2f" % r2_score(y_test,results))
     return r2_score(y_test,results)
@@ -147,15 +145,17 @@ def findMin(array):
             final = number
     return final
 #Returns good data
-"""
 def webScrape(startyear, endyear):
     starting = startyear.split('/')
     ending = endyear.split('/')
     dates = mdates.num2date(mdates.drange(DT.datetime(int(starting[0]), int(starting[1]), int(starting[2])),
-                                          DT.datetime(int(ending[0]), int(ending[1]), int(ending[2]),
-                                      DT.timedelta(days=1))))
-    return dates
-"""
+                                          DT.datetime(int(ending[0]), int(ending[1]), int(ending[2])),
+                                      DT.timedelta(days=1)))
+    newdates = []
+    for row in dates:
+        temp = row.split(' ')
+        newdates.append(temp)
+    return newdates
 def filterInt(masterdata, index1, index2,index3,index4,index5,index6):
     newarray1 = []
     newarray2 = []
@@ -165,7 +165,7 @@ def filterInt(masterdata, index1, index2,index3,index4,index5,index6):
     newarray6 = []
     
     for row in masterdata:
-        if row[index1] != '' and row[index2] != '' and row[index3] != '' and row[index4] != '' and row[index5] != '' and row[index6] != '':
+        if row[index1] != '' and row[index2] != '' and row[index3] != '' and row[index4] == "51" and row[index5] != '' and row[index6] != '':
             newarray1.append(float(row[index1]))
             newarray2.append(float(row[index2]))
             newarray3.append(float(row[index3]))
