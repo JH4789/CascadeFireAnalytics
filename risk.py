@@ -1,11 +1,13 @@
 #TF + Keras
 import csv
+import urllib.request
 import statistics
 import numpy as np
 from array import array
 import matplotlib.pyplot as plt
 import sys
 import math
+from statistics import mean
 import tensorflow as tf
 from sklearn import preprocessing
 from sklearn import datasets, linear_model
@@ -18,6 +20,7 @@ from tensorflow.keras import Sequential
 from keras.layers.core import Dense
 import datetime as DT
 import matplotlib.dates as mdates
+import statistics
 """
 Note index 71 is for flame length
 Index 73 is fire size?
@@ -43,7 +46,23 @@ def main():
     print(ignition)
     newarray = []
     counter = 0
-    print(webScrape('2012/4/6','2020/5/6'))
+    scraped = webScrape('2015/5/2','2020/5/6')
+    avg =0
+    for row in scraped:
+        avg+=row[1]
+    mean = avg/len(scraped)
+    print(mean)
+    avg = 0
+    counting = 0
+    for row in scraped:
+        #print(row[0])
+        if row[0] in ignition:
+            avg += row[1]
+            counting +=1
+            #print("OHOHOHOHOH")
+    newvar = avg/counting
+    print(newvar)
+    #for row in 
     """
     for row in flamelength:
         newarray.append([int(row)])
@@ -152,10 +171,40 @@ def webScrape(startyear, endyear):
                                           DT.datetime(int(ending[0]), int(ending[1]), int(ending[2])),
                                       DT.timedelta(days=1)))
     newdates = []
+    tempdates = []
     for row in dates:
-        temp = row.split(' ')
+        newarr = []
+        newarr.append(row.year)
+        newarr.append(row.month)
+        newarr.append(row.day)
+        tempdates.append(newarr)
+    for row in tempdates:
+        temp = []
+        tempyear = row[0]
+        tempmonth = row[1]
+        tempday = row[2]
+        if tempmonth < 10:
+            tempmonth = "0"+str(tempmonth)
+        if tempday < 10:
+            tempday = "0" + str(tempday)
+            datestr = str(tempyear) + "-" + str(tempmonth) + "-" + str(tempday)
+        else:
+            datestr = str(tempyear) + "-" + str(tempmonth) + "-" + str(tempday)
+        urlstr = 'https://www.almanac.com/weather/history/OR/Tillamook/' + datestr 
+        page_html = urllib.request.urlopen(urlstr).read()
+        temp.append(datestr)
+        temp.append(float(findTemp(str(page_html))))
         newdates.append(temp)
+        
     return newdates
+def findTemp(page_html):
+    temp_marker = page_html.find("<span class=\"value\">")
+    if temp_marker == -1:
+        print("Huh?")
+    new_temp_marker = page_html.find("<",temp_marker+3)
+    mean_temp = page_html[temp_marker:new_temp_marker]
+    mean_temp = mean_temp.split('>')
+    return mean_temp[1]
 def filterInt(masterdata, index1, index2,index3,index4,index5,index6):
     newarray1 = []
     newarray2 = []
@@ -183,7 +232,8 @@ def processTimes(inputlist):
     for row in inputlist:
         temp = row.split(" ")
         processed = temp[0].split('+')
-        newlist.append(processed[0])
+        newstr = processed[0].replace('/','-')
+        newlist.append(newstr)
     return newlist
 #Cleanup happened here
 def keras(X,y):
