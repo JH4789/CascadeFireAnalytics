@@ -45,8 +45,36 @@ def main():
     
     #All ignition time entries after 2008 go boom using the below line of code
     #flamelength, firesize,longitude,latitude,ignition,serial = filterInt(masterdata, 63,73,23,24,54,2)
+    
+    
+    bigWrapper(masterdata, '2012/5/2','2020/9/1', 52, 'Astoria','astoria.csv')
+    #linearreg(environment,finalcount,50 )
+    stop = timeit.default_timer()
+    print('Time: ', stop - start)  
+    #newint = linearreg(newarray, firesize, 16000)
+    
+    #keras(list1,list2)
+def bigWrapper(masterdata, start , end , citynum, cityname, filename):
+    filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2,citynum)
+    ignition = processTimes(ignition, start,end)
+    print(ignition)
+    loaded = loadData(filename)
+    
+    finalcount = []
+    environment = []
+    counter = 0
+    #scraped = webScrape(start,end, cityname)
+    countarray = countFires(ignition, loaded)
+    for row in loaded:
+        temp = []
+        temp.append(row[1])
+        temp.append(row[2])
+        environment.append(temp)
+    
+    for row in countarray:
+        finalcount.append(row[1])
     """
-    with open( 'meteorologicaldata.csv', 'w') as filewrite:
+    with open( 'astoria.csv', 'w') as filewrite:
         writer = csv.writer(filewrite)
         writer.writerow(['Date','Temperature' ,'Wind Speed'])
         for row in scraped:
@@ -56,42 +84,6 @@ def main():
             data.append(row[2])
             writer.writerow(data)
     """
-        #finalcount.append(temp)
-    bigWrapper(masterdata, '2018/5/2','2020/9/1', 52, 'Astoria')
-    """
-    for row in flamelength:
-        newarray.append([int(row)])
-        counter+=1
-    max = 0
-    count = 0
-    
-    for x in range(1,16):
-        newint = linearreg(newarray,list2,x*1000)
-        
-    if newint > max:
-            max = newint
-    """
-    #linearreg(environment,finalcount,50 )
-    stop = timeit.default_timer()
-    print('Time: ', stop - start)  
-    #newint = linearreg(newarray, firesize, 16000)
-    
-    #keras(list1,list2)
-def bigWrapper(masterdata, start , end , citynum, cityname):
-    filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2,citynum)
-    ignition = processTimes(ignition, start,end)
-    environment = []
-    finalcount = []
-    counter = 0
-    scraped = webScrape(start,end, cityname)
-    countarray = countFires(ignition, scraped)
-    for row in scraped:
-        temp = []
-        temp.append(row[1])
-        temp.append(row[2])
-        environment.append(temp)
-    for row in countarray:
-        finalcount.append(row[1])
     perceptron(environment, finalcount)
 def countFires(ignition, scraped):
     newarray = []
@@ -140,6 +132,21 @@ def scale_data(inputdata):
     for row in inputdata:
         newarray.append(row*100)
     return newarray
+def loadData(filename):
+    newarray = []
+    count = 0
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter = ',')
+        for row in csv_reader:
+            if count % 2 == 0 and count != 0:
+                print(row)
+                temp = []
+                temp.append(row[0])
+                temp.append(float(row[1]))
+                temp.append(float(row[2]))
+                newarray.append(temp)
+            count +=1
+    return newarray
 #Somethign is working here, have to keep messing around remember to add other types of input data, write new function to make sure that all the data stays aligned
 #MLP might not be the most optimal thing, sklearn may not deliver on the functionalities I need
 def perceptron(newarray, list2):
@@ -161,10 +168,9 @@ def perceptron(newarray, list2):
     ppn = MLPClassifier(hidden_layer_sizes = (3000), activation = "logistic",max_iter = 400,learning_rate_init = 0.01, solver = "lbfgs")
     ppn.fit(X_train, y_train.astype(int))
     y_pred = ppn.predict(X_test)
-    print(y_pred)
-    print(y_test)
-    print(ppn.score(X_test,y_pred))
-    print(ppn.predict([[82, 2]]))
+    newarr = []
+    #print(ppn.score(X_test,y_test))
+    print(ppn.predict([[60.8, 7.48]]))
 def getLongitude(masterdata):
     newarray = []
     for row in masterdata:
@@ -214,7 +220,7 @@ def webScrape(startyear, endyear, cityname):
         print("Iter")
         page_html = urllib.request.urlopen(urlstr).read()
         temp.append(datestr)
-        temp.append(float(findTemp(str(page_html)))**2)
+        temp.append(float(findTemp(str(page_html))))
         temp.append(float(windSpeed(str(page_html))))
         newdates.append(temp)
         
@@ -246,9 +252,9 @@ def filterInt(masterdata, index1, index2,index3,index4,index5,index6,locationnum
     newarray4 = []
     newarray5 = []
     newarray6 = []
-    
     for row in masterdata:
-        if row[index1] != '' and row[index2] != '' and row[index3] != '' and row[index4] == locationnum and row[index5] != '' and row[index6] != '':
+        if row[index1] != '' and row[index2] != '' and row[index3] != '' and int(row[index4]) == locationnum and row[index5] != '' and row[index6] != '':
+            print("ohohoho")
             newarray1.append(float(row[index1]))
             newarray2.append(float(row[index2]))
             newarray3.append(float(row[index3]))
