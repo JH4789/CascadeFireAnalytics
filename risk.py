@@ -1,5 +1,9 @@
 #TF + Keras
 #NEED UPDATE HERE PLEASE!!!!!!!!! UPDATE MEDIUM
+#RANDOM FOREST (ONE POSSIBLE METHOD)
+#FIX ERRORS IN WEB SCRAPE (TRY-CATCH)
+#Joint Probability Mass Distribution?, this may be promising to actually generate a risk index
+#Look into SciPy
 import timeit
 import csv
 import urllib.request
@@ -23,6 +27,8 @@ from keras.layers.core import Dense
 import datetime as DT
 import matplotlib.dates as mdates
 import statistics
+from scipy.stats import multivariate_normal
+from sklearn.ensemble import RandomForestClassifier
 """
 Note index 71 is for flame length
 Index 73 is fire size?
@@ -47,7 +53,7 @@ def main():
     #flamelength, firesize,longitude,latitude,ignition,serial = filterInt(masterdata, 63,73,23,24,54,2)
     
     
-    bigWrapper(masterdata, '2012/5/2','2020/9/1', 52, 'Astoria','astoria.csv')
+    bigWrapper(masterdata, '2012/2/10','2020/9/1', 52, 'Astoria','astoria.csv')
     #linearreg(environment,finalcount,50 )
     stop = timeit.default_timer()
     print('Time: ', stop - start)  
@@ -57,7 +63,6 @@ def main():
 def bigWrapper(masterdata, start , end , citynum, cityname, filename):
     filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2,citynum)
     ignition = processTimes(ignition, start,end)
-    print(ignition)
     loaded = loadData(filename)
     
     finalcount = []
@@ -65,6 +70,7 @@ def bigWrapper(masterdata, start , end , citynum, cityname, filename):
     counter = 0
     #scraped = webScrape(start,end, cityname)
     countarray = countFires(ignition, loaded)
+    
     for row in loaded:
         temp = []
         temp.append(row[1])
@@ -84,13 +90,17 @@ def bigWrapper(masterdata, start , end , citynum, cityname, filename):
             data.append(row[2])
             writer.writerow(data)
     """
-    perceptron(environment, finalcount)
+    randomForest(environment, finalcount)
 def countFires(ignition, scraped):
     newarray = []
     for row in scraped:
         temp = []
         temp.append(row[0])
         count = ignition.count(row[0])
+        if count >= 1:
+            count = True
+        else:
+            count = False
         temp.append(count)
         newarray.append(temp)
     return newarray
@@ -106,8 +116,22 @@ def dataValidate(masterdata, serial, inputlist, index):
             count +=1
     return valid
 
-# fit the model
-
+def randomForest(environment, finalcount):
+    X = np.asarray(environment)
+    print(X)
+ 
+    y = np.asarray(finalcount)
+    print(y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)
+    
+    clf = RandomForestClassifier(n_estimators = 100)
+    clf.fit(X_train, y_train)
+    print(clf.predict(X_test))
+    print(clf.score(X_test, y_test))
 #Linear reg seems to be working better, further testing needed
 def linearreg(list1, list2,numeral):
 
@@ -139,7 +163,6 @@ def loadData(filename):
         csv_reader = csv.reader(csv_file, delimiter = ',')
         for row in csv_reader:
             if count % 2 == 0 and count != 0:
-                print(row)
                 temp = []
                 temp.append(row[0])
                 temp.append(float(row[1]))
@@ -218,15 +241,18 @@ def webScrape(startyear, endyear, cityname):
             datestr = str(tempyear) + "-" + str(tempmonth) + "-" + str(tempday)
         urlstr = 'https://www.almanac.com/weather/history/OR/' + cityname + '/' + datestr 
         print("Iter")
+        print(datestr)
         page_html = urllib.request.urlopen(urlstr).read()
         temp.append(datestr)
-        temp.append(float(findTemp(str(page_html))))
-        temp.append(float(windSpeed(str(page_html))))
+        try:
+            temp.append(float(findTemp(str(page_html))))
+            temp.append(float(windSpeed(str(page_html))))
+        except:
+            temp.append(float(findTemp(str(page_html))))
         newdates.append(temp)
         
     return newdates
 def findTemp(page_html):
-    
     temp_marker = page_html.find("Maximum")
     temp_marker = page_html.find("value", temp_marker+1)
     new_temp_marker  = page_html.find("<", temp_marker+3)
@@ -236,8 +262,8 @@ def findTemp(page_html):
     return mean_temp[0]
 def windSpeed(page_html):
     temp_marker = page_html.find("Speed")
-    temp_marker = page_html.find("Mean", temp_marker)
-    temp_marker = page_html.find("<span class=\"value\">", temp_marker)
+    temp_marker = page_html.find("Maximum", temp_marker+3)
+    temp_marker = page_html.find("<span class=\"value\">", temp_marker+3)
     
     if temp_marker == -1:
         print("Huh?")
@@ -254,7 +280,6 @@ def filterInt(masterdata, index1, index2,index3,index4,index5,index6,locationnum
     newarray6 = []
     for row in masterdata:
         if row[index1] != '' and row[index2] != '' and row[index3] != '' and int(row[index4]) == locationnum and row[index5] != '' and row[index6] != '':
-            print("ohohoho")
             newarray1.append(float(row[index1]))
             newarray2.append(float(row[index2]))
             newarray3.append(float(row[index3]))
