@@ -4,6 +4,7 @@
 #FIX ERRORS IN WEB SCRAPE (TRY-CATCH)
 #Joint Probability Mass Distribution?, this may be promising to actually generate a risk index
 #Look into SciPy
+#New dataset? Caps downloads at 1000 records a day doing initial testing with tillamook
 import timeit
 import csv
 import urllib.request
@@ -14,7 +15,6 @@ import matplotlib.pyplot as plt
 import sys
 import math
 from statistics import mean
-import tensorflow as tf
 from sklearn import preprocessing
 from sklearn import datasets, linear_model
 from sklearn.neural_network  import MLPClassifier
@@ -22,13 +22,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn import datasets
-from tensorflow.keras import Sequential
-from keras.layers.core import Dense
 import datetime as DT
 import matplotlib.dates as mdates
 import statistics
 from scipy.stats import multivariate_normal
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_validate
+from sklearn.tree import export_graphviz
+from subprocess import check_call
+#import pydot
 """
 Note index 71 is for flame length
 Index 73 is fire size?
@@ -52,19 +54,28 @@ def main():
     #All ignition time entries after 2008 go boom using the below line of code
     #flamelength, firesize,longitude,latitude,ignition,serial = filterInt(masterdata, 63,73,23,24,54,2)
     
-    
-    bigWrapper(masterdata, '2012/2/10','2020/9/1', 52, 'Astoria','astoria.csv')
-    #linearreg(environment,finalcount,50 )
+    #writeFile(masterdata, '2012/2/10', '2020/9/1', 51, 'Tillamook', 'tillamook.csv')
+    bigWrapper(masterdata, '2013/5/1','2019/09/1', 51, 'Tillamook','tillamook.csv')
     stop = timeit.default_timer()
     print('Time: ', stop - start)  
-    #newint = linearreg(newarray, firesize, 16000)
-    
-    #keras(list1,list2)
+def writeFile(masterdata, start, end, citynum, cityname, filename):
+    filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2,citynum)
+    ignition = processTimes(ignition, start,end)
+    scraped = webScrape(start, end ,cityname)
+    with open( filename, 'w') as filewrite:
+        writer = csv.writer(filewrite)
+        writer.writerow(['Date','Temperature' ,'Wind Speed'])
+        for row in scraped:
+            data = []
+            data.append(row[0])
+            data.append(row[1])
+            data.append(row[2])
+            writer.writerow(data)
 def bigWrapper(masterdata, start , end , citynum, cityname, filename):
     filler,filler,filler,unit,ignition, serial,  = filterInt(masterdata,0,0,0,8,54,2,citynum)
     ignition = processTimes(ignition, start,end)
-    loaded = loadData(filename)
-    
+    loaded = loadData(filename,start,end)
+    print(ignition)
     finalcount = []
     environment = []
     counter = 0
@@ -118,20 +129,38 @@ def dataValidate(masterdata, serial, inputlist, index):
 
 def randomForest(environment, finalcount):
     X = np.asarray(environment)
-    print(X)
- 
     y = np.asarray(finalcount)
-    print(y)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-    scaler = StandardScaler()
-    scaler.fit(X_train)
-    X_train = scaler.transform(X_train)
-    X_test = scaler.transform(X_test)
-    
-    clf = RandomForestClassifier(n_estimators = 100)
+    #scaler = StandardScaler()
+    #scaler.fit(X_train)
+    #X_train = scaler.transform(X_train)
+    #X_test = scaler.transform(X_test)
+    clf = RandomForestClassifier(max_depth = 10,min_samples_split = 50,n_estimators = 200,class_weight = "balanced")
     clf.fit(X_train, y_train)
-    print(clf.predict(X_test))
-    print(clf.score(X_test, y_test))
+    y_pred = clf.predict(X_test)
+    cv_results = cross_validate(clf, X, y, cv=2)
+    print(cv_results)
+    print(clf.decision_path(X_test))
+    #clf.plot_tree(clf, features_names = X, class_names = y,filled = True)
+    estimator = clf.estimators_[1]
+    export_graphviz(estimator, out_file='tree.dot', 
+                feature_names = ['Temperature','Wind Speed'],
+                class_names = 'Fire Prediction',
+                rounded = True, proportion = False, 
+                precision = 2, filled = True)
+    #check_call(['dot','-Tpng','tree.dot',' -o',' test.png'])
+    count = 0
+    print(y_pred)
+    for i in X_test:
+        if y_test[count] == True:
+            plt.scatter(i[0], i[1], color = "blue")
+        if y_pred[count] == True:
+            print("Predicted")
+            plt.scatter(i[0],i[1], color = "green")
+        if y_test[count] == True and y_pred[count] == True:
+            print("Hoepfully happned once")
+        count +=1
+    plt.show()
 #Linear reg seems to be working better, further testing needed
 def linearreg(list1, list2,numeral):
 
@@ -156,18 +185,64 @@ def scale_data(inputdata):
     for row in inputdata:
         newarray.append(row*100)
     return newarray
-def loadData(filename):
+#Have to add range here :(
+def loadData(filename,start,end):
     newarray = []
     count = 0
+    starting = start.split('/')
+    ending = end.split('/')
+    dates = mdates.num2date(mdates.drange(DT.datetime(int(starting[0]), int(starting[1]), int(starting[2])),
+                                          DT.datetime(int(ending[0]), int(ending[1]), int(ending[2])),
+                                      DT.timedelta(days=1)))
+
+    newdates = []
+    tempdates = []
+
+    for row in dates:
+        newarr = []
+        newarr.append(row.year)
+        newarr.append(row.month)
+        newarr.append(row.day)
+        tempdates.append(newarr)
+    for row in tempdates:
+        temp = []
+        tempyear = row[0]
+        tempmonth = row[1]
+        tempday = row[2]
+        if tempmonth < 10:
+            tempmonth = "0"+str(tempmonth)
+        if tempday < 10:
+            tempday = "0" + str(tempday)
+            datestr = str(tempyear) + "-" + str(tempmonth) + "-" + str(tempday)
+        else:
+            datestr = str(tempyear) + "-" + str(tempmonth) + "-" + str(tempday)
+        newdates.append(datestr)
+        #Filler for now 
+        
+#    print(tempdates)
+    newdata = []
+    print(newdates)
     with open(filename) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter = ',')
+
         for row in csv_reader:
-            if count % 2 == 0 and count != 0:
+            
+            if count != 0 and len(row) != 0:
                 temp = []
                 temp.append(row[0])
                 temp.append(float(row[1]))
                 temp.append(float(row[2]))
-                newarray.append(temp)
+                newdata.append(temp)
+            count +=1
+    for row in newdata:
+        #print(row[0])
+        if row[0] in newdates:
+            
+            temp = []
+            temp.append(row[0])
+            temp.append(float(row[1]))
+            temp.append(float(row[2]))
+            newarray.append(temp)
             count +=1
     return newarray
 #Somethign is working here, have to keep messing around remember to add other types of input data, write new function to make sure that all the data stays aligned
@@ -221,6 +296,7 @@ def webScrape(startyear, endyear, cityname):
                                       DT.timedelta(days=1)))
     newdates = []
     tempdates = []
+
     for row in dates:
         newarr = []
         newarr.append(row.year)
@@ -246,9 +322,12 @@ def webScrape(startyear, endyear, cityname):
         temp.append(datestr)
         try:
             temp.append(float(findTemp(str(page_html))))
+        except:
+            temp.append(-1)
+        try:
             temp.append(float(windSpeed(str(page_html))))
         except:
-            temp.append(float(findTemp(str(page_html))))
+            temp.append(-1)
         newdates.append(temp)
         
     return newdates
@@ -321,23 +400,6 @@ def processTimes(inputlist,range1, range2):
  
     return newlist
 #Cleanup happened here
-#If not used in next 2 days delete
-def keras(X,y):
-    y = np.asarray(y)
-    np.expand_dims(y, -1)
-    X = np.asarray(X)
-    np.expand_dims(X,-1)
-    X_train = X[:-200]
-    X_test = X[-200:]
-    y_train = y[:-200]
-    y_test = y[:-200]
-    print(len(X_train))
-    model = Sequential()
-    model.add(Dense(512, input_shape=(16552,), activation='relu'))
-    model.add(Dense(768, activation='relu'))
-    model.add(Dense(10, activation='softmax'))
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    model.fit(X_train, y_train, epochs=100)
 
 main()
 
