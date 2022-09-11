@@ -1,0 +1,37 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname="helvetica"] ;
+edge [fontname="helvetica"] ;
+0 [label="Maximum Temperature <= 17.03\ngini = 0.4\nsamples = 659\nvalue = [959, 2520]\nclass = i", fillcolor="#84c2ef"] ;
+1 [label="Maximum Temperature <= 13.97\ngini = 0.12\nsamples = 391\nvalue = [600, 40]\nclass = F", fillcolor="#e78946"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="gini = 0.0\nsamples = 255\nvalue = [396, 0]\nclass = F", fillcolor="#e58139"] ;
+1 -> 2 ;
+3 [label="Maximum Temperature <= 14.03\ngini = 0.27\nsamples = 136\nvalue = [204, 40]\nclass = F", fillcolor="#ea9a60"] ;
+1 -> 3 ;
+4 [label="gini = 0.37\nsamples = 10\nvalue = [13, 40]\nclass = i", fillcolor="#79bded"] ;
+3 -> 4 ;
+5 [label="gini = 0.0\nsamples = 126\nvalue = [191, 0]\nclass = F", fillcolor="#e58139"] ;
+3 -> 5 ;
+6 [label="Humidity <= 76.22\ngini = 0.22\nsamples = 268\nvalue = [359, 2480]\nclass = i", fillcolor="#56abe9"] ;
+0 -> 6 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+7 [label="gini = 0.12\nsamples = 99\nvalue = [120, 1720]\nclass = i", fillcolor="#47a4e7"] ;
+6 -> 7 ;
+8 [label="Windspeed <= 30.82\ngini = 0.36\nsamples = 169\nvalue = [239, 760]\nclass = i", fillcolor="#77bced"] ;
+6 -> 8 ;
+9 [label="Humidity <= 76.49\ngini = 0.35\nsamples = 153\nvalue = [217, 760]\nclass = i", fillcolor="#72b9ec"] ;
+8 -> 9 ;
+10 [label="gini = 0.0\nsamples = 8\nvalue = [10, 0]\nclass = F", fillcolor="#e58139"] ;
+9 -> 10 ;
+11 [label="Windspeed <= 24.86\ngini = 0.34\nsamples = 145\nvalue = [207, 760]\nclass = i", fillcolor="#6fb8ec"] ;
+9 -> 11 ;
+12 [label="Humidity <= 84.52\ngini = 0.42\nsamples = 118\nvalue = [172, 400]\nclass = i", fillcolor="#8ec7f0"] ;
+11 -> 12 ;
+13 [label="gini = 0.49\nsamples = 83\nvalue = [128, 160]\nclass = i", fillcolor="#d7ebfa"] ;
+12 -> 13 ;
+14 [label="gini = 0.26\nsamples = 35\nvalue = [44, 240]\nclass = i", fillcolor="#5dafea"] ;
+12 -> 14 ;
+15 [label="gini = 0.16\nsamples = 27\nvalue = [35, 360]\nclass = i", fillcolor="#4ca7e8"] ;
+11 -> 15 ;
+16 [label="gini = 0.0\nsamples = 16\nvalue = [22, 0]\nclass = F", fillcolor="#e58139"] ;
+8 -> 16 ;
+}
