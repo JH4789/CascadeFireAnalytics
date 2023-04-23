@@ -21,6 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn import datasets
+from sklearn.metrics import classification_report
 import datetime as DT
 import matplotlib.dates as mdates
 import statistics
@@ -46,11 +47,11 @@ def main():
     areacode = input("Enter the code recognized by the master file: ")
     startingrange = input("Enter the starting date range (Formatted YYYY/MM/DD): ")
     endrange = input("Enter the end date range (Formatted YYYY/MM/DD): ")
-    masterdata = pd.read_csv(masterfilename)
-    environmentaldata = pd.read_csv(environmentaldataname)
-    masterdata =process_master(masterdata,int(areacode))
+    masterdata = pd.read_csv("ODF_Fire.csv")
+    environmentaldata = pd.read_csv("tillamook_total.csv")
+    masterdata =process_master(masterdata,int(51))
     environmentaldata = environmentaldata.dropna(subset = ["humidity"])
-    wrapper(masterdata, startingrange,endrange, int(areacode), environmentaldata)
+    wrapper(masterdata, "2016/10/23","2021/10/23", int(51), environmentaldata)
     stop = timeit.default_timer()
     print('Time: ', stop - start)
 #Functions to convert units (Visual Crossing Dataset is not in metric)
@@ -95,6 +96,23 @@ def randomForest(environment, finalcount):
     X = np.asarray(environment)
 
     y = np.asarray(finalcount)
+    fires = []
+    nofires = []
+    firestotal = 0
+    nofirestotal = 0
+    notemp = 0
+    averagetemp = 0
+    finalarr = np.concatenate((X,y), axis=1)
+    for i in finalarr:
+        if i[3] == 1:
+            averagetemp += i[2]
+            firestotal +=1
+        else:
+            nofires.append(i)
+            notemp += i[2]
+            nofirestotal +=1
+    print(averagetemp/firestotal)
+    print(notemp/nofirestotal)
     #y = y.ravel()
     #testmaster = np.concatenate((X,y),axis=1)
 
@@ -109,6 +127,7 @@ def randomForest(environment, finalcount):
     cv_results = cross_validate(clf, X, y, cv=3)
     #clf.plot_tree(clf, features_names = X, class_names = y,filled = True)
     estimator = clf.estimators_[1]
+    print(classification_report(y_pred, y_test))
     #Used for generating decision path
     """
     export_graphviz(estimator, out_file='tree.dot', 
