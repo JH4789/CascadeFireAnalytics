@@ -51,7 +51,7 @@ def main():
     environmentaldata = pd.read_csv("tillamook_total.csv")
     masterdata =process_master(masterdata,int(51))
     environmentaldata = environmentaldata.dropna(subset = ["humidity"])
-    wrapper(masterdata, "2016/10/23","2021/10/23", int(51), environmentaldata)
+    wrapper(masterdata, "2016/10/23","2019/10/23", int(51), environmentaldata)
     stop = timeit.default_timer()
     print('Time: ', stop - start)
 #Functions to convert units (Visual Crossing Dataset is not in metric)
@@ -63,9 +63,10 @@ def convertmiles(x):
 def wrapper(masterdata, start, end, citynum, environmentdata):
     ignition = masterdata[['Ign_DateTime']]
     dates = returnDates(start, end)
+    test = ignition['Ign_DateTime'].str.split()
     
-    ignition[['Ign_DateTime', 'Filler']] = ignition['Ign_DateTime'].str.split(' ',1,expand=True)
-    del ignition['Filler']
+    ignition['Ign_DateTime'] = [x[0] for x in test]
+    
     ignition['Ign_DateTime'] = ignition['Ign_DateTime'].str.replace('/','-')
     ignition = ignition[ignition['Ign_DateTime'].isin(dates)]
     finalcount = []
@@ -203,15 +204,21 @@ def randomForest(environment, finalcount):
     inputLoop(clf)
 #Generates dates to track with the main datasets
 def inputLoop(clf):
-    userinput = input("Enter P to enter a prediction, enter Q to quit")
+    print(clf.predict([[29.44,28.96,18]]))
+    userinput = input("Enter P to enter a prediction, enter Q to quit?\n")
     while userinput != 'P' and userinput != "Q":
         print(userinput)
-        userinput = input("Please try again. Enter P to enter a prediction, enter Q to quit")
+        userinput = input("Please try again. Enter P to enter a prediction, enter Q to quit?\n")
     if userinput == "Q":
         return
     else:
-        environ = input("Please enter the environmental data as decimals separated by spaces. Ex: Temperature WindSpeed Humidity")
+        environ = input("Please enter the environmental data as decimals separated by spaces. Ex: Temperature WindSpeed Humidity?\n")
         split = environ.split(' ')
+        #A problem with the current implementation of the model is that extremeley high values in
+        #any of the categories results in a return of false
+        split = [float(x) for x in split]
+        print(split)
+        
         try:
             print(clf.predict([split]))
             inputLoop(clf)
@@ -219,7 +226,7 @@ def inputLoop(clf):
             print("Please try again")
             inputLoop(clf)
         
-    #print(clf.predict([[29.44,28.96,18]]))
+    
 #Generates dates
 def returnDates(start,end):
     starting = start.split('/')
